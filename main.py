@@ -6,6 +6,8 @@ import platform
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+from datetime import date, datetime, timedelta
+import time as _time
 
 path = "C:\Windows\Fonts/malgun.ttf"
 from matplotlib import font_manager, rc
@@ -20,13 +22,15 @@ else:
     print("해당 운영체제는 지원하지 않습니다")
 
 url_base = "https://movie.naver.com/"
-url_syb = "movie/sdb/rank/rmovie.naver?sel=cur&date=20220306"
+url_syb = "movie/sdb/rank/rmovie.naver?sel=cur&date=20220312"
 
 page = urlopen(url_base + url_syb)
 
 soup = BeautifulSoup(page, "html.parser")
 
 
+today = date.today()
+surfingLength = 30
 
 # 해당 시점에서 가장 평점이 높은 영화
 print(soup.find_all('div', 'tit5')[0].a.string)
@@ -34,12 +38,18 @@ print(soup.find_all('div', 'tit5')[0].a.string)
 # 해당 시점에서 가장 평점이 높은 점수
 print(soup.find_all('td', 'point')[0].string)
 
-date = pd.date_range('2022-1-1', periods=65, freq='D')
-
+date = pd.date_range(today-timedelta(days=surfingLength), periods=surfingLength, freq='D')
 
 movie_date = []
 movie_name = []
 movie_point = []
+
+
+movie_rank_name = [0 for i in range(surfingLength)]
+movie_rank_rank = [0 for i in range(surfingLength)]
+rankDate = 0
+
+strFormat = '%-10s%-10s\n'
 
 for today in tqdm(date):
     html = "https://movie.naver.com/movie/sdb/rank/rmovie.naver?sel=cur&date={date}"
@@ -50,6 +60,12 @@ for today in tqdm(date):
     movie_date.extend([today for n in range(0, end)])
     movie_name.extend([soup.find_all('div', 'tit5')[n].a.string for n in range(0, end)])
     movie_point.extend([soup.find_all('td', 'point')[n].string for n in range(0, end)])
+
+    movie_rank_name[rankDate] = soup.find_all('div', 'tit5')[0].a.string
+    movie_rank_rank[rankDate] = soup.find_all('td', 'point')[0].string
+    rankDate = rankDate + 1
+for i in range(0, surfingLength):
+    print(movie_rank_name[i] + "\t" + movie_rank_rank[i])
 
 movie = pd.DataFrame({'date': movie_date, 'name': movie_name, 'point': movie_point})
 movie['point'] = movie['point'].astype(float)
